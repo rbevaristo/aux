@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Auth;
+use App\User;
+use App\VerifyUser;
+use App\Mail\VerifyMail;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SignUpRequest;
-use App\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -19,6 +23,7 @@ class AuthController extends Controller
         $this->middleware('auth:api', [
             'except' => ['login', 'register'],
             ]);
+    
     }
 
     /**
@@ -30,16 +35,28 @@ class AuthController extends Controller
     {
         $credentials = request(['email', 'password']);
 
+        $user = User::where('email', request('email'))->first();
+        if(!$user->verified) {
+            return response()->json(['error' => 'You need to confirm your account. We have sent you an activation code, please check your email.'], 401);
+        }
+
         if (! $token = auth()->attempt($credentials)) {
-            return response()->json(['error' => 'Email or password does\'t exist'], 401);
+            return response()->json(['error' => 'Email or password doesn\'t exist'], 401);
         }
 
         return $this->respondWithToken($token);
     }
 
     public function register(SignUpRequest $request) {
-        User::create($request->all());
-        return $this->login($request);
+        $user = User::create($request->all());
+        $verify = VerifyUser::create([
+            'user_id' => $user->id,
+            'token' => str_random(40)
+        ]);
+
+        Mail::to($user->email)->send(new VerifyMail($user));
+
+        return response()->json(['data' => 'We sent you an activation code. Check your email and click on the link to verify.']);
     }
 
     /**
