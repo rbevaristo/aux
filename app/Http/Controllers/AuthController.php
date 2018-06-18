@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\User;
 use App\VerifyUser;
 use App\Mail\VerifyMail;
+use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SignUpRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Socialite\Facades\Socialite;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
@@ -21,7 +23,7 @@ class AuthController extends Controller
     public function __construct()
     {
         $this->middleware('auth:api', [
-            'except' => ['login', 'register'],
+            'except' => ['login', 'register', 'verifyUser', 'facebook'],
             ]);
     
     }
@@ -36,9 +38,19 @@ class AuthController extends Controller
         $credentials = request(['email', 'password']);
 
         $user = User::where('email', request('email'))->first();
+
+        if(!$user){
+            $user = new User;
+            $user->name = request('name');
+            $user->email = request('email');
+            $user->password = request('password');
+            $user->verified = '1';
+            $user->save();
+        }
+
         if(!$user->verified) {
             return response()->json(['error' => 'You need to confirm your account. We have sent you an activation code, please check your email.'], 401);
-        }
+        } 
 
         if (! $token = auth()->attempt($credentials)) {
             return response()->json(['error' => 'Email or password doesn\'t exist'], 401);
@@ -47,7 +59,7 @@ class AuthController extends Controller
         return $this->respondWithToken($token);
     }
 
-    public function register(SignUpRequest $request) {
+    public function register(SignUpRequest $request){
         $user = User::create($request->all());
         $verify = VerifyUser::create([
             'user_id' => $user->id,
@@ -57,6 +69,30 @@ class AuthController extends Controller
         Mail::to($user->email)->send(new VerifyMail($user));
 
         return response()->json(['data' => 'We sent you an activation code. Check your email and click on the link to verify.']);
+    }
+
+    public function verifyUser() {
+
+        $user = User::where('email', request('email'))->first();
+
+        $verifyUser = VerifyUser::where('token', request('token'))->first();
+        if(isset($verifyUser)){
+
+            if(!$user->verified) {
+                $user->verified = 1;
+                $user->save();
+                
+                VerifyUser::where('token', request('token'))->delete();
+
+                return response()->json(['data' => "Your e-mail is verified. You can now login."], Response::HTTP_OK);;
+            } else {
+                return response()->json(['error' => 'Sorry the token sent to  your email has already expired.'], Response::HTTP_NOT_FOUND);
+            }
+
+        }else{
+            return response()->json(['error' => 'Sorry your email cannot be identified. It may already been verified or the email doesn\'t exist.'], Response::HTTP_NOT_FOUND);
+        }
+
     }
 
     /**

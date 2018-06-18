@@ -13,27 +13,22 @@ use Illuminate\Foundation\Auth\AuthenticatesUsers;
 
 class LoginFacebookController extends Controller
 {
-    use AuthenticatesUsers;
-    /**
-     * Create a new AuthController instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
-        $this->middleware('auth:api');
+        $this->middleware('auth:api', [
+            'except' => ['redirectToProvider'],
+            ]);
+    
     }
-
-
     /**
      * Redirect the user to the Facebook authentication page.
      *
      * @return \Illuminate\Http\Response
      */
-     public function redirectToProvider()
-     {
-         return Socialite::driver('facebook')->stateless()->redirect();
-     }
+    public function redirectToProvider()
+    {
+        return Socialite::driver('facebook')->stateless()->redirect();
+    }
 
     // /**
     //  * Obtain the user information from Facebook.
@@ -52,18 +47,13 @@ class LoginFacebookController extends Controller
             $user->name = $userFacebook->name;
             $user->email = $userFacebook->email;
             $user->password = '123456';
+            $user->verified = '1';
             $user->save();
         }
 
         $credentials = ['email' => $user->email, 'password' => $user->password];
 
-        if (! $token = auth()->attempt($credentials)) {
-            return response()->json(['error' => 'Email or password doesn\'t exist'], 401);
-        }
-
-        return $this->respondWithToken($token);
-
-        //return $this->facebook($user);
+        return response()->json(['data' => $credentials]);
 
      }
     

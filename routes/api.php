@@ -12,16 +12,7 @@ Route::group([
     Route::post('me', 'AuthController@me');
     Route::post('sendPasswordResetLink', 'ResetPasswordController@sendEmail');
     Route::post('resetPassword', 'ChangePasswordController@process');
-    
+    Route::post('/user/verify', 'AuthController@verifyUser');
     Route::apiResource('company', 'CompanyController');
     Route::apiResource('company/{company}/employee', 'EmployeeController');
-
-    Route::get('/user/verify/{token}', 'AuthController@verifyUser');
-
 });
-
-// Route::get('facebook', 'Auth\LoginFacebookController@redirectToProvider');
-// Route::get('facebook/callback', 'Auth\LoginFacebookController@handleProviderCallback');
-
-
-

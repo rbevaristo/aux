@@ -1,15 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Welcome Email</title>
-</head>
- 
-<body>
-<h2>Welcome to the site {{$user['name']}}</h2>
-<br/>
-Your registered email-id is {{$user['email']}} , Please click on the below link to verify your email account
-<br/>
-<a href="{{url('user/verify', $user->verifyUser->token)}}">Verify Email</a>
-</body>
- 
-</html>
+@component('mail::message')
+# Verify Account
+
+Click on the button below to verify your account.
+
+@component('mail::button', ['url' => 'http://localhost:4200/user/verify?token='.$token.'&email='.$email])
+Verify
+@endcomponent
+
+Thanks,<br>
+{{ config('app.name') }}
+@endcomponent

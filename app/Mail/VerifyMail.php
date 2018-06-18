@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\VerifyUser;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -29,6 +30,10 @@ class VerifyMail extends Mailable
      */
     public function build()
     {
-        return $this->view('Email.verifyEmail');
+
+        return $this->markdown('Email.verifyEmail')->with([
+            'token' => $this->user->verifyUser->token,
+            'email' => $this->user->email
+        ]);
     }
 }
