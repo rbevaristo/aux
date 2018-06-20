@@ -23,7 +23,7 @@ class AuthController extends Controller
     public function __construct()
     {
         $this->middleware('auth:api', [
-            'except' => ['login', 'register', 'verifyUser', 'facebook'],
+            'except' => ['login', 'register', 'verifyUser', 'socialLogin'],
             ]);
     
     }
@@ -39,7 +39,7 @@ class AuthController extends Controller
 
         $user = User::where('email', request('email'))->first();
 
-        if(!$user){
+        if(request('action') != null && !$user){
             $user = new User;
             $user->name = request('name');
             $user->email = request('email');
@@ -48,11 +48,15 @@ class AuthController extends Controller
             $user->save();
         }
 
-        if(!$user->verified) {
-            return response()->json(['error' => 'You need to confirm your account. We have sent you an activation code, please check your email.'], 401);
-        } 
+        if($user){
+            if(!$user->verified ){
+                return response()->json(['error' => 'You need to confirm your account. We have sent you an activation code, please check your email.'], 401);
+            }
+        }
+        
 
         if (! $token = auth()->attempt($credentials)) {
+            
             return response()->json(['error' => 'Email or password doesn\'t exist'], 401);
         }
 
